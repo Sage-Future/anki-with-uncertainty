@@ -1,0 +1,39 @@
+{{Front}}
+
+<br/>
+<br/>
+
+<p style="font-size: medium">Give your <span style="font-weight: bold;" id="confidence-interval"></span> confidence interval:</p>
+
+<input id="interval" autofocus style="min-width: 50%; text-align: center; font-size: large" type="text" />
+<label style="display:block; opacity: .4; font-size: small; padding-top: 10px" for="interval">
+	❔ Enter a range ("1-10") or write the exact answer ("6").
+</label>
+
+<script>
+
+var possibleIntervals = [50, 60, 70, 80, 90, 95]
+window.CONFIDENCE_INTERVAL = possibleIntervals[Math.floor(Math.random() * possibleIntervals.length)]
+document.querySelector("#confidence-interval").textContent = `${window.CONFIDENCE_INTERVAL}%`
+
+var intervalInput = document.querySelector("#interval")
+intervalInput.addEventListener(
+	"change",
+	(e) => {
+		window.INTERVAL_TEXT = e.target.value
+	}
+)
+intervalInput.addEventListener("keypress", (e) => {
+	if (event.key === "Enter") {
+		window.bridgeCommand("ans")
+	}
+})
+
+setInterval(() => document.querySelector("#interval")?.focus(), 50)
+
+document.addEventListener("DOMContentLoaded", function(event) {
+	document.focus()
+	setTimeout(() => document.querySelector("#interval").focus(), 50)
+})
+
+</script>

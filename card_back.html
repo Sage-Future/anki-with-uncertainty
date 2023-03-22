@@ -1,0 +1,177 @@
+{{Front}}
+
+<p id="youSaid"><i class="hint">You said: </i><span id="intervalTextDisplay"></span></p>
+
+<hr style="opacity:0.3" id="answer">
+
+<p><i class="hint">Answer:</i> {{Answer (must be a number)}}</p>
+
+<p class="hint">{{Notes}}</p>
+
+<div id="errorContainer">
+	<p id="error" style="color:red"></p>
+</div>
+
+<p id="intervalResults"></p>
+
+<p id="accuracyDisplay" class="hint intervalBack" style="font-size: small;">Desired accuracy multiplier: <span id="accuracySpan"></span></p>
+
+<div class="intervalBack" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 5px; background: grey; padding: 0 20px; display: flex; font-weight: bold" title="Based on your score, we recommend you select this difficulty. Get a higher score to see this card less often.">
+	<p id="buttonHint"></p>
+</div>
+
+
+<script>
+	function setError(errStr) {
+		document.querySelector("#error").textContent = errStr
+	}
+
+	document.querySelector("#intervalTextDisplay").textContent = window.INTERVAL_TEXT
+	
+	if (!window.INTERVAL_TEXT) {
+		setError("You didn't type an answer")
+		document.querySelector("#youSaid").style = "display: none"
+  	document.querySelectorAll(".intervalBack").forEach((el) => el.style = "display:none")
+	} else {
+
+		var interval = window.INTERVAL_TEXT
+		
+		var parts = interval.split("-").map(part => part.trim())
+
+		var accuracyMultiplier = "{{Desired accuracy multiplier}}" || "1"
+		
+		if (parts.length === 2) {
+			if (isNaN("{{Answer (must be a number)}}")) {
+				setError("Error: card back is not numerical: {{Answer (must be a number)}}")
+			}
+			else if (isNaN(parts[0])) {
+				setError("Error: lower bound is not numerical: " + parts[0])
+			} else if (isNaN(parts[1])) {
+				setError("Error: upper bound is not numerical: " + parts[1])
+			} else if (!CONFIDENCE_INTERVAL) {
+				setError("Plugin error: missing confidence interval")
+			} else if (isNaN(accuracyMultiplier) || accuracyMultiplier <= 0) {
+				setError("Error: desired accuracy multiplier must be a positive number. 1 = default, 2 = high accuracy, 0.5 = low accuracy.")
+			} else {
+				var lower = Number(parts[0])
+				var upper = Number(parts[1])
+				var answer = Number("{{Answer (must be a number)}}")
+
+				var results = document.querySelector("#intervalResults")
+
+				var correct = answer >= lower && answer <= upper
+				if (correct) {
+					results.textContent = "✅ Correct!"
+					results.style = "background: darkgreen; padding: 5px"
+				} else {
+					results.textContent = "🔴 Incorrect!"
+					results.style = "background: darkred; padding: 5px"
+				}
+	
+				var useLogScoring = answer >= 10000
+				var score = ankiScore(lower, upper, answer, window.CONFIDENCE_INTERVAL, useLogScoring, 1000)
+				results.textContent += ` ${score > 0 ? "+" : ""}${score.toPrecision(2)} points`
+
+				if (accuracyMultiplier == 1) {
+					document.querySelector("#accuracyDisplay").style = "display:none"
+				} else {
+					document.querySelector("#accuracySpan").textContent = accuracyMultiplier
+				}
+
+				var recommendation = score < 0 ? "Again [1]" : ( score < (2 * accuracyMultiplier) ? "Hard [2]" : ( score < (4 * accuracyMultiplier) ? "Good [3]" : "Easy [4]" ) )
+				document.querySelector("#buttonHint").textContent = `${recommendation}`
+
+				var calibrationData = {
+					correct,
+					confidenceInterval: window.CONFIDENCE_INTERVAL,
+					score,
+					timestamp: new Date(),
+					question: "{{Front}}".replace("\n", ""),
+				}
+				window.bridgeCommand(`updateCalibration;${JSON.stringify(calibrationData)}`)
+			}
+
+		} else {
+			document.querySelectorAll(".intervalBack").forEach((el) => el.style = "display:none")
+		}
+
+	}
+
+
+function ankiScore(
+  lowerBound,
+  upperBound,
+  answer,
+  confidenceInterval,
+  useLogScoring,
+  C,
+) {
+  const SMAX = 10;
+  const SMIN = -50; // higher lower bound for challenge questions to be more forgiving
+  const DELTA = 0.4;
+  const EPSILON = 0.0000000001;
+  const B = confidenceInterval / 100;
+
+  return greenbergScoring(lowerBound,
+    upperBound,
+    answer,
+    useLogScoring,
+    C,
+    SMAX,
+    SMIN,
+    DELTA,
+    EPSILON,
+    B,
+  )
+}
+
+function greenbergScoring(
+  lowerBound,
+  upperBound,
+  answer,
+  useLogScoring,
+  C,
+  SMAX,
+  SMIN,
+  DELTA,
+  EPSILON,
+  B,
+) {
+  if (!useLogScoring) {
+    lowerBound -= EPSILON;
+    upperBound += EPSILON;
+    let r = (lowerBound - answer) / C;
+    let s = (upperBound - lowerBound) / C;
+    let t = (answer - upperBound) / C;
+    if (answer < lowerBound) {
+      return Math.max(SMIN, (-2 / (1 - B)) * r - (r / (1 + r)) * s);
+    } else if (answer > upperBound) {
+      return Math.max(SMIN, (-2 / (1 - B)) * t - (t / (1 + t)) * s);
+    }
+    lowerBound -= DELTA;
+    upperBound += DELTA;
+    r = (lowerBound - answer) / C;
+    s = (upperBound - lowerBound) / C;
+    t = (answer - upperBound) / C;
+    return ((4 * SMAX * r * t) / (s * s)) * (1 - s / (1 + s));
+  } else {
+    lowerBound /= 10 ** EPSILON;
+    upperBound *= 10 ** EPSILON;
+    let r = Math.log(lowerBound / answer) / Math.log(C);
+    let s = Math.log(upperBound / lowerBound) / Math.log(C);
+    let t = Math.log(answer / upperBound) / Math.log(C);
+    if (answer < lowerBound) {
+      return Math.max(SMIN, (-2 / (1 - B)) * r - (r / (1 + r)) * s);
+    } else if (answer > upperBound) {
+      return Math.max(SMIN, (-2 / (1 - B)) * t - (t / (1 + t)) * s);
+    }
+    lowerBound /= 10 ** DELTA;
+    upperBound *= 10 ** DELTA;
+    r = Math.log(lowerBound / answer) / Math.log(C);
+    s = Math.log(upperBound / lowerBound) / Math.log(C);
+    t = Math.log(answer / upperBound) / Math.log(C);
+    return ((4 * SMAX * r * t) / (s * s)) * (1 - s / (1 + s));
+  }
+};
+
+</script>
