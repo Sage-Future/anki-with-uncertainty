@@ -1,5 +1,4 @@
 rm -r build
-cp __init__.py build/__init__.py
 
 mkdir build
 cp __init__.py build/__init__.py
