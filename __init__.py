@@ -1,5 +1,4 @@
 import json
-from statistics import mean, median
 
 from aqt import gui_hooks, mw, reviewer
 from aqt.qt import *
@@ -49,11 +48,21 @@ def getCalibrationScores():
             scores[interval] = {
                 "Correct": f'{round(sum(answer["correct"] for answer in interval_answers) / len(interval_answers) * 100, 2)}%',
                 "Questions answered": len(interval_answers),
-                "Mean score": mean(answer["score"] for answer in interval_answers),
-                "Median score": median(answer["score"] for answer in interval_answers),
+                "Mean score": mean([answer["score"] for answer in interval_answers]),
+                "Median score": median([answer["score"] for answer in interval_answers]),
             }
 
         return scores
+
+def mean(items):
+    return sum(items) / len(items)
+
+def median(items):
+    items = sorted(items)
+    if len(items) % 2 == 0:
+        return mean(items[len(items) // 2 - 1 : len(items) // 2 + 1])
+    else:
+        return items[len(items) // 2]
 
 def printScores():
     try:
