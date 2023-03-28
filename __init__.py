@@ -10,7 +10,7 @@ calibration_data_path = os.path.join(base_path, "user_files/calibration_data.jso
 
 COMMAND = "updateCalibration;"
 
-def updateCalibration(handled: tuple[bool, any], message: str, context: any):
+def updateCalibration(handled, message, context):
     handleAndPreventDefault = (True, None)
     
     if not message.startswith(COMMAND):
@@ -23,7 +23,7 @@ def updateCalibration(handled: tuple[bool, any], message: str, context: any):
     with open(calibration_data_path, "a+") as f:
         f.write(payload + "\n")
 
-    print(f"Wrote calibration data to file: {payload} {base_path}/user_files/calibration_data.json")
+    print("Wrote calibration data to file:" + str(payload) + " " + str(base_path) + "/user_files/calibration_data.json")
     return handleAndPreventDefault
 
 gui_hooks.webview_did_receive_js_message.append(updateCalibration)
@@ -46,7 +46,7 @@ def getCalibrationScores():
         for interval in sorted(confidence_intervals):
             interval_answers = [answer for answer in answers if answer["confidenceInterval"] == interval]
             scores[interval] = {
-                "Correct": f'{round(sum(answer["correct"] for answer in interval_answers) / len(interval_answers) * 100, 2)}%',
+                "Correct": str(round(sum(answer["correct"] for answer in interval_answers) / len(interval_answers) * 100, 2)) + "%",
                 "Questions answered": len(interval_answers),
                 "Mean score": mean([answer["score"] for answer in interval_answers]),
                 "Median score": median([answer["score"] for answer in interval_answers]),
@@ -69,12 +69,12 @@ def printScores():
         all_scores = getCalibrationScores()
         output = "Your calibration scores so far:\n\n"
         for confidence_interval, scores in all_scores.items():
-            score_str = "\n".join([f"    {k}: {round(v, 2) if isinstance(v, float) else v}" for k, v in scores.items()])
-            output += f"{confidence_interval}% confidence interval:\n{score_str}\n\n"
+            score_str = "\n".join(["    " + str(k) + ": " + (str(round(v, 2)) if isinstance(v, float) else v) for k, v in scores.items()])
+            output += str(confidence_interval) + r"% confidence interval:\n" + score_str + "\n\n"
         showInfo(output)
 
     except RuntimeError as e:
-        showInfo(f"Could not read calibration data: {e}")
+        showInfo("Could not read calibration data: " + str(e))
 
 
 # add to the tools menu
