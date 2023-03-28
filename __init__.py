@@ -69,8 +69,8 @@ def printScores():
         all_scores = getCalibrationScores()
         output = "Your calibration scores so far:\n\n"
         for confidence_interval, scores in all_scores.items():
-            score_str = "\n".join(["    " + str(k) + ": " + (str(round(v, 2)) if isinstance(v, float) else v) for k, v in scores.items()])
-            output += str(confidence_interval) + r"% confidence interval:\n" + score_str + "\n\n"
+            score_str = "\n".join(["    " + str(k) + ": " + (str(round(v, 2)) if isinstance(v, float) else str(v)) for k, v in scores.items()])
+            output += str(confidence_interval) + r"%" + " confidence interval:\n" + score_str + "\n\n"
         showInfo(output)
 
     except RuntimeError as e:
