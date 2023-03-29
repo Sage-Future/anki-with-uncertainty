@@ -38,10 +38,10 @@
 		
 		var parts = interval.split("-").map(part => part.trim())
 
-		var accuracyMultiplier = "{{Desired accuracy multiplier}}" || "1"
+		var accuracyMultiplier = String.raw`{{Desired accuracy multiplier}}` || "1"
 		
 		if (parts.length === 2) {
-			if (isNaN("{{Answer (must be a number)}}")) {
+			if (isNaN(String.raw`{{Answer (must be a number)}}`)) {
 				setError("Error: card back is not numerical: {{Answer (must be a number)}}")
 			}
 			else if (isNaN(parts[0])) {
@@ -55,7 +55,7 @@
 			} else {
 				var lower = Number(parts[0])
 				var upper = Number(parts[1])
-				var answer = Number("{{Answer (must be a number)}}")
+				var answer = Number(String.raw`{{Answer (must be a number)}}`)
 
 				var results = document.querySelector("#intervalResults")
 
@@ -86,7 +86,7 @@
 					confidenceInterval: window.CONFIDENCE_INTERVAL,
 					score,
 					timestamp: new Date(),
-					question: "{{Front}}".replace("\n", ""),
+					question: String.raw`{{Front}}`.replace("\n", ""),
 				}
 				window.bridgeCommand(`updateCalibration;${JSON.stringify(calibrationData)}`)
 			}
